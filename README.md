@@ -4,7 +4,7 @@
 
 Velora is a clean, efficient project management platform designed to help teams stay organized and productive. Built for speed, clarity, and high-performance collaboration.
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Velora_Web-6366f1?style=for-the-badge)](https://ais-pre-2i673tjzmbphrtmobnpm4o-818376986416.asia-east1.run.app)
+[![Live Demo](https://velora-production-e06b.up.railway.app/)
 
 ## 🚀 Vision
 In an era of fragmented communication, Velora provides the tools to connect individual tasks to overall project health. Our dual-dashboard architecture ensures that Administrators maintain oversight while Team Members stay focused on their assigned tasks.
@@ -73,7 +73,7 @@ Velora supports seamless synchronization of your strategic deadlines with Google
     *   Application type: **Web application**.
     *   Authorized redirect URIs:
         *   Local: `http://localhost:3000/api/calendar/callback`
-        *   Production: `https://your-app-name.railway.app/api/calendar/callback`
+        *   Production: `https://velora-production-e06b.up.railway.app/`
 6.  Copy the **Client ID** and **Client Secret**.
 
 ### 2. Environment Variables
