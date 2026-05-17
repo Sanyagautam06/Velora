@@ -7,46 +7,56 @@ export const useGoogleCalendar = () => {
   const [isDemoMode, setIsDemoMode] = useState<boolean | null>(null);
 
   const checkMode = async () => {
+    console.log('[CalendarSync] checkMode: Checking Supabase session...');
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('[CalendarSync] checkMode: Supabase session retrieved:', session ? 'FOUND' : 'NULL');
       if (session) {
         setIsDemoMode(false);
+        console.log('[CalendarSync] checkMode: Set isDemoMode = false (Real OAuth Mode)');
         return session;
       }
       
-      // If no supabase session, check if we have a demo user logged in
       const savedUser = localStorage.getItem('velora_user');
+      console.log('[CalendarSync] checkMode: velora_user in localStorage:', savedUser ? 'FOUND' : 'NULL');
       if (savedUser) {
         setIsDemoMode(true);
+        console.log('[CalendarSync] checkMode: Set isDemoMode = true (Demo Mode)');
       } else {
         setIsDemoMode(false);
+        console.log('[CalendarSync] checkMode: Set isDemoMode = false (Default/Fallback)');
       }
       return null;
     } catch (e) {
-      setIsDemoMode(true); // Fallback to demo in case of any error
+      console.error('[CalendarSync] checkMode exception:', e);
+      setIsDemoMode(true); 
       return null;
     }
   };
 
   const fetchStatus = async () => {
+    console.log('[CalendarSync] fetchStatus: Fetching connection status...');
     try {
       const session = await checkMode();
       if (!session) {
-        // Demo Mode status
         const demoConnected = localStorage.getItem('velora_demo_calendar_connected') === 'true';
+        console.log('[CalendarSync] fetchStatus (Demo Mode): Status is', demoConnected ? 'CONNECTED' : 'DISCONNECTED');
         setIsConnected(demoConnected);
         return;
       }
 
+      console.log('[CalendarSync] fetchStatus (Real Mode): Calling /api/calendar/status...');
       const response = await fetch('/api/calendar/status', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
       });
+      console.log('[CalendarSync] fetchStatus (Real Mode): Status response status code:', response.status);
       const data = await response.json();
+      console.log('[CalendarSync] fetchStatus (Real Mode): Connection state:', data.connected);
       setIsConnected(data.connected);
     } catch (error) {
-      console.error('Failed to fetch calendar status:', error);
+      console.error('[CalendarSync] Failed to fetch calendar status:', error);
       setIsConnected(false);
     }
   };
@@ -56,35 +66,41 @@ export const useGoogleCalendar = () => {
   }, []);
 
   const connect = async () => {
+    console.log('[CalendarSync] connect: Initializing connection flow...');
     setIsLoading(true);
     try {
       const session = await checkMode();
       if (!session) {
-        // Demo Mode connection simulation
+        console.log('[CalendarSync] connect (Demo Mode): Initiating simulated delay...');
         await new Promise(resolve => setTimeout(resolve, 1500));
         localStorage.setItem('velora_demo_calendar_connected', 'true');
+        console.log('[CalendarSync] connect (Demo Mode): Setting isConnected = true');
         setIsConnected(true);
-        // Redirect with success parameter to match real redirect behavior
         const url = new URL(window.location.href);
         url.searchParams.set('calendar_success', 'true');
+        console.log('[CalendarSync] connect (Demo Mode): Redirecting to success URL:', url.toString());
         window.location.href = url.toString();
         return;
       }
 
+      console.log('[CalendarSync] connect (Real Mode): Fetching auth URL from backend /api/calendar/auth...');
       const response = await fetch('/api/calendar/auth', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
       });
+      console.log('[CalendarSync] connect (Real Mode): Backend response code:', response.status);
       const data = await response.json();
+      console.log('[CalendarSync] connect (Real Mode): Backend response body:', data);
 
       if (data.success && data.authUrl) {
+        console.log('[CalendarSync] connect (Real Mode): Redirecting user to Google OAuth page:', data.authUrl);
         window.location.href = data.authUrl;
       } else {
         throw new Error(data.error || 'Failed to get auth URL');
       }
     } catch (error: any) {
-      console.error('Connection error:', error);
+      console.error('[CalendarSync] Connection error:', error);
       throw error;
     } finally {
       setIsLoading(false);
