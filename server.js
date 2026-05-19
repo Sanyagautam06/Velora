@@ -8,6 +8,18 @@ import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
+const requiredEnv = [
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'GOOGLE_REDIRECT_URI'
+];
+
+requiredEnv.forEach((envVar) => {
+  if (!process.env[envVar]) {
+    console.warn(`Missing ${envVar}`);
+  }
+});
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -17,7 +29,15 @@ const port = process.env.PORT || 5000;
 // Supabase Configuration
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('Missing SUPABASE environment variables');
+}
+
+const supabase = createClient(
+  supabaseUrl,
+  supabaseServiceKey
+);
 
 // Middleware
 app.use(cors({
@@ -362,13 +382,27 @@ if (!fromEmail) {
       });
     }
 
-    const emailData = await emailResponse.json();
+const emailData = await emailResponse.json();
 
-    res.json({
-      success: true,
-      message: 'Invitation sent successfully',
-      emailId: emailData.id
-    });
+const { error: inviteError } = await supabase
+  .from('invitations')
+  .insert({
+    email,
+    name,
+    role,
+    project,
+    invited_by: req.userId
+  });
+
+if (inviteError) {
+   console.error(inviteError);
+}
+
+res.json({
+  success: true,
+  message: 'Invitation sent successfully',
+  emailId: emailData.id
+});
 
   } catch (error) {
     console.error('Invite error:', error);
